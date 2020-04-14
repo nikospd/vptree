@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "../lib/sort.h"
 
 
 typedef struct vptree{
@@ -16,218 +15,143 @@ typedef struct vptree{
 	int idx;
 }vptree ;
 
-vptree* newNode(int data){
-	vptree* node = (vptree*)malloc(sizeof(vptree)); 
-  	node->inner = NULL; 
-	node->outer = NULL; 
-	node->MD = 0;
-	node->VP = NULL;
-  	node->idx = data; 
-	return(node); 
+vptree newNode(int idx, double* vp, double md) {
+	vptree p;
+	p.inner = NULL;
+	p.outer = NULL;
+	p.MD = md;
+	p.VP = vp;
+	p.idx = idx;
+	return p;
 }
 
+// Helper function. Returns a double random number
 double drand ( double low, double high )
 {
     return ( (double)rand() * ( high - low ) ) / (double)RAND_MAX + low;
 }
 
-
-void findVP(double *vp, double * X, int idx, int D){
-	// printf("the idx of the vp: %d\n", idx);
-	for (int i=0;i<D;i++){
-		*(vp+i) = *(X+idx*D+i);
+// Helper function. Prints a table o doubles. Used for debugging
+void printBalk(double *X, int N, int D){
+	for (int i=0;i<N;i++){
+		for (int j=0;j<D;j++){
+			printf(" %f || ",*(X+((D*i)+j)));
+		}
+		printf(" \n");
 	}
-	// printf("the vp is: \n");
-	// for (int i=0;i<D;i++){
-	// 	printf(" %f ", *(vp+i));
-	// }
-	// printf("\n");
-	// printf("-------\n");
-	
+	printf("-------\n");
+}
+
+// Helper funtion. Prints the tree with inner order. Used for debugging
+void printInorder(struct vptree* root) 
+{ 
+  if (root == NULL) 
+    return; 
+  printInorder(root->inner);  
+  printf("%d ", root->idx); 
+  printInorder(root->outer); 
 }
 
 void findDistances(double *distances, double *X, int *T, double *vp, int N, int D){
 	for (int i=0;i<(N-1);i++){
-		// printf("\ncalculating distance for point: %d\n", i);
 		double sum=0;
+		int tmpidx = T[i];
 		for (int j=0;j<D;j++){
-			int tmpidx = *(T+i);
-			sum += pow((*(X+tmpidx*D+j) - *(vp+j)),2);
-			
+			sum += pow((X[tmpidx*D+j] - vp[j]),2);
 		}
-		*(distances + i) = sqrt(sum);
+		distances[i] = sqrt(sum);
 	}
 }
 
-int findSubTrees(int *Tinner, int *Touter, int *T, double *distances, double MD, int N ){
-	int numInner = 0;
-	int numOuter = 0;
+int findSubtrees(int *Tinner, int *Touter, int *T, double *distances, double MD, int N){
+	int Ninner = 0;
+	int Nouter = 0;
 	for (int i=0;i<N-1;i++){
-		if (*(distances+i) > MD){
-			*(Touter+numOuter) = *(T+i);
-			numOuter += 1;
-		}else{
-			*(Tinner+numInner) = *(T+i);
-			numInner += 1;
+		if (distances[i] <= MD) {
+			Tinner[Ninner] = T[i];
+			Ninner += 1;
+		}else {
+			Touter[Nouter] = T[i];
+			Nouter += 1;
 		}
 	}
-	return numInner;
+	return Ninner;
 }
 
+int cmpfunc (const void * a, const void * b)
+{
+  return (*(double*)a > *(double*)b) ? 1 : (*(double*)a < *(double*)b) ? -1:0 ;
+}
 
-vptree * buildvptree(double *X, int *T, int N, int D){
-	if (N == 1){
-		// printf("\nhere for 1\n");
-		int idx = *(T+N-1);
-		vptree *node = newNode(idx);
-		// node->idx=idx;
-		node->inner=NULL;
-		node->outer=NULL;
-		double *vp = (double *)malloc(D*sizeof(double));
-		findVP(vp, X, idx, D);
-		node->VP=vp;
-		// nodeptr=&node;
-		// return nodeptr;
-		return node;
+vptree * buildvptree(vptree * Nodes, double * X, int * T,int  N, int D){
+
+	if (N==1){
+		int idx = T[0];
+		double *vp = malloc(D*sizeof(double));
+		for (int i=0; i<D;i++){
+			vp[i] = X[idx*D + i];
+		}
+		vptree node = newNode(idx, vp, 0);
+		Nodes[idx] = node;
+		free(vp);
+		return &Nodes[idx];
+	}else if(N == 2){ 
+		int idx = T[1];
+		int tmpidx = T[0];
+		double *vp = malloc(D*sizeof(double));
+		double MD, sum = 0;
+		for (int i=0; i<D;i++){
+			vp[i] = X[(idx-1)*D + i];
+			sum += pow((X[idx*D + i] - X[tmpidx*D + i]), 2);
+		}
+		MD = sqrt(sum);
+		vptree node = newNode(idx, vp, MD);
+		int *T2 = &T[N-2];
+		node.inner = buildvptree(Nodes, X, T2, N-1, D);
+		Nodes[idx] = node;
+		free(vp);
+		return &Nodes[idx];
+	}else{
+
+		int idx = T[N-1];
+		double *vp = malloc(D*sizeof(double));
+		for (int i=0; i<D;i++){
+			vp[i] = X[idx*D + i];
+		}
+		double * distances = malloc((N-1)*sizeof(double));
+		findDistances(distances, X, T, vp, N, D);
+
+		// making a template distances vector cause this implementation of the 
+		// quick select, is messing with the structure of the original table
+		double *quickdistances = malloc((N-1)*sizeof(double));
+		for (int i=0;i<(N-1);i++){
+			quickdistances[i]=distances[i];
+		}
+
+		double MD;
+		qsort(quickdistances, N-1, sizeof(double), cmpfunc);
+		MD = quickdistances[(N/2)-1];
+
+		// Create the new node with the idx, vp and MD that just calculated 
+		vptree node = newNode(idx, vp, MD);
+		// Find the new T vectors for the inner and outer Trees. Also the size of those trees
+		int *Tinner = (int *)malloc(N*sizeof(int));
+		int *Touter = (int *)malloc(N*sizeof(int));
+
+		int Ninner = findSubtrees(Tinner, Touter, T, distances, MD, N);
+		int Nouter = N - 1 - Ninner;
+		node.inner = buildvptree(Nodes, X, Tinner, Ninner, D);
+		node.outer = buildvptree(Nodes, X, Touter, Nouter, D);
+
+		// This node is part of the tree at the position of the idx
+		free(distances);
+		free(quickdistances);
+		free(Tinner);
+		free(Touter);
+		free(vp);
+		Nodes[idx] = node;
+		return &Nodes[idx];
+
 		
-		
-	}else if (N == 2){
-		// printf("\nhere for 2\n");
-		int idx = *(T+N-1);
-		vptree *node = newNode(idx);
-		// node->idx=idx;
-		node->inner=NULL;
-		node->outer=NULL;
-		double *vp = (double *)malloc(D*sizeof(double));
-		findVP(vp, X, idx, D);
-		node->VP=vp;
-		int *T2 = (int *)malloc(N*sizeof(int));
-		*T2 = *(T+N-2);
-		vptree *node2;
-		node2 = buildvptree(X, T2, N-1, D);
-		node->inner=node2;
-		// nodeptr=&node;
-		return node;
 	}
-
-
-	// Find the Vantage Point
-	int idx = *(T+N-1);
-	vptree *node = newNode(idx);
-	// node->idx=idx;
-	// printf("\nthe idx of the vp inside the build: %d", node->idx);
-	node->inner=NULL;
-	node->outer=NULL;
-	double *vp = (double *)malloc(D*sizeof(double));
-	findVP(vp, X, idx, D);
-	node->VP=vp;
-	// Find the distances vector
-	double *distances = (double *)malloc((N-1)*sizeof(double));
-	findDistances(distances, X, T, vp, N, D);
-
-	// making a template distances vector cause this implementation of the 
-	// quick select, is messing with the structure of the original table
-	double *quickdistances = (double *)malloc((N-1)*sizeof(double));
-
-	for (int i=0;i<(N-1);i++){
-		*(quickdistances+i)=*(distances+i);
-	}
-
-	// double MD = quickselect(quickdistances, 0, N-1 , ll);
-	double MD;
-	quickSort(quickdistances, 0, N-2);
-	
-	// printf("\nprint the SORTED distances\n");
-    // for (int i=0;i<(N-1);i++){
-    //     printf(" %f \n", *(quickdistances+i));
-    // }
-
-	MD = *(quickdistances+(N/2)-1);
-	node->MD=MD;
-	// I dont need this vector any more. I found the median distance
-	free(quickdistances);
-	
-	// Alocate memory for the subtrees
-	int *Tinner = (int *)malloc(N*sizeof(int));
-	int *Touter = (int *)malloc(N*sizeof(int));
-
-	// Find the subtrees
-	int numInner = findSubTrees(Tinner, Touter, T, distances, MD, N);
-	int numOuter = N-numInner-1;
-
-	// printf("i will print the inner\n");
-	// for (int i=0;i<numInner;i++){
-	// 	printf("| %d |", *(Tinner+i));
-	// }
-
-	// printf("\ni will print the outer\n");
-	// for (int i=0;i<numOuter;i++){
-	// 	printf("| %d |", *(Touter+i));
-	// }
-	// printf("\n");
-	// ----Fill the structure with Inner|VP|Outer
-	for (int i=0;i<numInner;i++){
-		*(T+i) = *(Tinner+i);
-	} 
-	*(T+numInner) = idx;
-	for (int i=0;i<numOuter;i++){
-		*(T+numInner+1+i) = *(Touter+i);
-	}
-	// ----Recursion----
-	vptree *inner = newNode(0), *outer = newNode (0);
-	inner = buildvptree(X, Tinner, numInner, D);
-	outer = buildvptree(X, Touter, numOuter, D);
-
-	node->inner=inner;
-	node->outer=outer;
-	// nodeptr = &node;
-	return node;
-	
 }
-
-vptree * buildvp(double *X, int n, int d){
-	vptree * node = newNode(0);
-	int * T;
-	T = (int *)malloc(n*sizeof(int));
-	for (int i=0;i<n;i++){
-		*(T+i) = i;
-	}
-	node = buildvptree(X, T, n, d);
-	return node;
-}
-
-int getIDX(vptree * T){
-	return T->idx;
-}
-
-double * getVP(vptree * T){
-	return T->VP;
-}
-
-double getMD(vptree * T){
-	return T->MD;
-}
-
-vptree * getOuter(vptree * T){
-	return T->outer;
-}
-
-vptree * getInner(vptree * T){
-	return T->inner;
-}
-
-
-// #pragma omp parallel num_threads(1000)
-// 	{
-// 		#pragma omp single
-//     	{
-// 			#pragma omp task
-// 			buildvptree(X, Tinner, numInner, D);
-			
-// 			#pragma omp task
-// 			buildvptree(X, Touter, numOuter, D);
-// 		}
-
-// 	}
-
-	// #pragma omp parallel for 

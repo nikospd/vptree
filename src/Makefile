@@ -22,7 +22,7 @@ CC = gcc
 
 # define compile-time flags
 # CFLAGS = -O3 -fcilkplus -fopenmp -Wall
-CFLAGS = -O3 -Wall -fopenmp
+CFLAGS = -O3 -Wall -g -fsanitize=address
 
 # define any directories containing header files
 INCLUDES = 
@@ -30,19 +30,21 @@ INCLUDES =
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib specify
 #   their path using -Lpath, something like:
-LDFLAGS = ../lib/
+# LDFLAGS = ../lib/
+LDFLAGS = 
 
 # define any libraries to link into executable:
 #   To ling libusb-1.0 :
 #   LIBS = -lusb-1.0
-LIBS = sort.a
+# LIBS = sort.a -lm
+LIBS = -lm
 
 # define the source file for the library
 SRC = vptree
 
 # define the different possible executables
 # TYPES = sequential openmp cilk pthreads
-TYPES = sequential openmp
+TYPES = sequential
 
 # define the executable file  name
 MAIN = main

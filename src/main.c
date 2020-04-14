@@ -1,88 +1,75 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "../lib/sort.h"
 #include <time.h>
 #include "vptree.h"
 
 void printBalk(double *X, int N, int D);
 
-// typedef struct vptree{
-// 	struct vptree *inner;
-// 	struct vptree *outer;
-// 	double MD;
-// 	double *VP;
-// 	int idx;
-// }vptree ;
 void printInorder(struct vptree* node);
 
-// struct vptree* newNode(int data) 
-// { 
-//   struct vptree* node = (struct foo*) 
-//                        malloc(sizeof(struct foo)); 
-//   node->x = data; 
-//   node->fItem = NULL; 
-   
-//   return(node); 
-// }
-
 int main(){
-	clock_t begin = clock();
-	int N=1500000, D=2;
+
+	// create the dataset
+	int N=20, D=2;
 	double *X;
-	X = (double *)malloc(N*D*sizeof(double));
+	X = malloc(N*D*sizeof(double));
 	for (int i=0;i<N;i++){
 		for (int j=0;j<D;j++){
-			// *(X+((D*i)+j))=rand()%200;
-			*(X+((D*i)+j))=drand(10, 1000);
+			X[(D * i) + j] = drand(10, 100);
+			// *(X+((D*i)+j))=drand(10, 1000);
 		}
 	}
-	// printBalk(X,N,D);
+	printBalk(X,N,D);
 
-	int * T = (int *)malloc(N*sizeof(int));
+	// the rest will be inside the buildvp
+
+	// Matrix T to keep the indeces of the elements
+	int * T = malloc(N*sizeof(int));
 	for (int i=0;i<N;i++){
-		*(T+i) = i;
+		T[i] = i;
 	}
 	printf("-----\n");
-	vptree *node = newNode(0);
-	node = buildvptree(X, T, N, D);
-	int idx = getIDX(node);
-	printf("\nthe idx of the root: %d\n", idx);
-	// printf("\n---------\n");
-	// printInorder(node);
-	// printf("\n---------\n");
 
+	// Allocate memory for all the nodes of the tree.
+	// vptree *Tree = malloc(N*sizeof(vptree));
+	double * vp;
+	for (int i=0; i<D;i++){
+		int idx = (N-1)*D + i;
+		vp[i] = X[idx];
+	}
+	vptree * Nodes = malloc(N*sizeof(vptree));
+	
+
+	
+	// The VP will be the first element of every tree / sub-tree
+	// vptree * nodeRoot = &Tree[T[N-1]];
+	
+	// newNode(nodeRoot, T[N-1], vp);
+	vptree * rootNode;
+	rootNode = buildvptree(Nodes, X, T, N, D);
+
+	
+	printf("DONE built tree \n");
+	// int idx = getIDX(nodeRoot);
+	// printf("\nthe idx of the root: %d\n", idx);
+	printf("\n---------\n");
+	printInorder(rootNode);
+	printf("\n---------\n");
+	// free(Nodes);
+	free(T);
+	free(X);
+	return 0;
 	// printf("now i will print it from the main\n");
 
-	// vptree * T = buildvp(X, N, D);
+	// vptree * No = buildvp(X, N, D);
 	// printf("\nNow i will print the tree that i have from the getter\n");
 	
 
 	// for (int i=0;i<N;i++){
-	// 	printf("| %d |", *(T+i));
+	// 	printf("| %d |", No[i]);
 	// }
-	clock_t end = clock();
-	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	printf("\nexcecution time: %f\n", time_spent);
-	return 0;
+	// free(Nodes);
+	// return 0;
 }
 
-void printBalk(double *X, int N, int D){
-	for (int i=0;i<N;i++){
-		for (int j=0;j<D;j++){
-			printf(" %f || ",*(X+((D*i)+j)));
-		}
-		printf(" \n");
-	}
-	printf("-------\n");
-}
-
-
-void printInorder(struct vptree* node) 
-{ 
-  if (node == NULL) 
-    return; 
-  printInorder(node->inner);  
-  printf("%d ", node->idx); 
-  printInorder(node->outer); 
-}
