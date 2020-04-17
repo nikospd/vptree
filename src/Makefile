@@ -22,7 +22,7 @@ CC = gcc
 
 # define compile-time flags
 # CFLAGS = -O3 -fcilkplus -fopenmp -Wall
-CFLAGS = -O3 -Wall -g -fsanitize=address
+CFLAGS = -O3 -Wall -g -fsanitize=address -pg
 
 # define any directories containing header files
 INCLUDES = 

@@ -150,8 +150,50 @@ vptree * buildvptree(vptree * Nodes, double * X, int * T,int  N, int D){
 		free(Touter);
 		free(vp);
 		Nodes[idx] = node;
-		return &Nodes[idx];
-
-		
+		return &Nodes[idx];		
 	}
+}
+
+vptree * buildvp(double *X, int n, int d){
+	int * T = malloc(n*sizeof(int));
+	for (int i=0;i<n;i++){
+		T[i] = i;
+	}
+	vptree * Nodes = malloc(n*sizeof(vptree));
+	vptree * rootNode;
+	rootNode = buildvptree(Nodes, X, T, n, d);
+	free(T);
+	return rootNode;
+}
+vptree * getInner(vptree * T){
+	return T->inner;
+}
+vptree * getOuter(vptree * T){
+	return T->outer;
+}
+double getMD(vptree *T){
+	return T->MD;
+}
+double * getVP(vptree *T){
+	return T->VP;
+}
+int getIDX(vptree *T){
+	return T->idx;
+}
+
+void walkTheTree(vptree * root)
+{
+
+	if (root == NULL){return;}
+
+	vptree * inner = getInner(root);
+	vptree * outer = getOuter(root);
+	
+	walkTheTree(inner);  
+  	int idx = getIDX(root);
+	double MD = getMD(root);
+	// double * vp = getVP(root); 
+	printf("idx: %d , MD: %f \n", idx, MD);
+	// printf("%f, %f \n", vp[0], vp[1]);
+  	walkTheTree(outer); 
 }

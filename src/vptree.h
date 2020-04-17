@@ -37,6 +37,13 @@ void printBalk(double *X, int n, int d);
 */
 void printInorder(struct vptree* root);
 
+//! Print the nodes of a tree using the accessors
+/*!
+
+  \param root   The root node of the tree
+*/
+void walkTheTree(struct vptree *root);
+
 vptree * buildvptree(vptree *Nodes, double *X, int *T, int N, int D);
 
 // ========== LIST OF ACCESSORS
