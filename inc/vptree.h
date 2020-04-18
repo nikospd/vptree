@@ -44,8 +44,7 @@ void printInorder(struct vptree* root);
 */
 void walkTheTree(struct vptree *root);
 
-vptree * buildvptree(vptree *Nodes, double *X, int *T, int N, int D);
-
+vptree * buildvptree(double *X, int *T, int N, int D);
 // ========== LIST OF ACCESSORS
 
 
