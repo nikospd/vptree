@@ -70,11 +70,51 @@ int findSubtrees(int *Tinner, int *Touter, int *T, double *distances, double MD,
 	}
 	return Ninner;
 }
-
-int cmpfunc (const void * a, const void * b)
+void swap_double(double *a, double *b)
 {
-  return (*(double*)a > *(double*)b) ? 1 : (*(double*)a < *(double*)b) ? -1:0 ;
+    double t = *a;
+    *a = *b;
+    *b = t;
 }
+void swap_int(int *a, int *b)
+{
+    int t = *a;
+    *a = *b;
+    *b = t;
+}
+int partition(int *T,double *distances, int l, int N) 
+{ 
+    double x = distances[N];
+    int i = l; 
+    for (int j = l; j <= N - 1; j++) { 
+        if (distances[j] <= x) { 
+            swap_double(&distances[i], &distances[j]); 
+            swap_int(&T[i],&T[j]);
+            i++; 
+        } 
+    } 
+    swap_double(&distances[i], &distances[N]); 
+    swap_int(&T[i],&T[N]);
+    return i; 
+} 
+double qselect(int *T,double *distances, int l, int N, int k) 
+{ 
+
+    if (k > 0 && k <= N - l + 1) { 
+  
+        int index = partition(T,distances, l, N); 
+
+        if (index - l == k - 1) 
+            return distances[index]; //it is equal return median value 
+  
+        if (index - l > k - 1)  
+            return qselect(T,distances, l, index - 1, k); //if index greater than k set the boundaries to the left side of the array
+  
+        return qselect(T,distances, index + 1, N,(k - index + l - 1)); //set the boundaries to the right side and set the k correct
+    } 
+  
+    return -1; 
+} 
 
 vptree * buildvptree(double * X, int * T,int  N, int D){
 
@@ -98,8 +138,7 @@ vptree * buildvptree(double * X, int * T,int  N, int D){
 		}
 		MD = sqrt(sum);
 		vptree * node = newNode(idx, vp, MD);
-		int *T2 = &T[N-2];
-		node->inner = buildvptree(X, T2, N-1, D);
+		node->inner = buildvptree(X, &T[N-2], N-1, D);
 		free(vp);
 		return node;
 	}else{
@@ -110,43 +149,16 @@ vptree * buildvptree(double * X, int * T,int  N, int D){
 		}
 		double * distances = malloc((N-1)*sizeof(double));
 		findDistances(distances, X, T, vp, N, D);
-		// making a template distances vector cause this implementation of the 
-		// quick select, is messing with the structure of the original table
-        
-		double *quickdistances = malloc((N-1)*sizeof(double));
-		for (int i=0;i<(N-1);i++){
-			quickdistances[i]=distances[i];
-		}
-        // this is wrong. Along with the quick select we have to mess with the T
-        // and not create new Tinner and Touter every time. 
-		qsort(quickdistances, N-1, sizeof(double), cmpfunc);
-		double MD = quickdistances[(N/2)-1];
-
-		// Create the new node with the idx, vp and MD that just calculated 
+		int mdidx = floor(N/2);
+		double MD = qselect(T,distances,0,N-2,mdidx);
 		vptree * node = newNode(idx, vp, MD);
 		
-        /*!
-        Find the new T vectors for the inner and outer Trees. Also the size of those trees
-        The correct way is to mess with the T along with the vector of distances
-        So we dont have to allocate and find new vectors of Tinner and Touter every time
-        */
-		int *Tinner = (int *)malloc(N*sizeof(int));
-		int *Touter = (int *)malloc(N*sizeof(int));
-
-		int Ninner = findSubtrees(Tinner, Touter, T, distances, MD, N);
-		int Nouter = N - 1 - Ninner;
-        /*
-        This work but its not the best solution
-        */
-		
-        node->inner = buildvptree(X, Tinner, Ninner, D);
-		node->outer = buildvptree(X, Touter, Nouter, D);
+		node ->inner = buildvptree(X, T, mdidx, D);
+		node ->outer = buildvptree(X, &T[mdidx], N-1-mdidx, D);
 
 		// This node is part of the tree at the position of the idx
 		free(distances);
-		free(quickdistances);
-		free(Tinner);
-		free(Touter);
+
 		free(vp);
 		return node;
 	}
